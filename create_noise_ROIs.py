@@ -1,4 +1,12 @@
 #!/usr/bin/python3
+#
+# Create 4 cubic ROIs in the input image corners. The ROIs can be used for computation of background noise SD.
+#
+# Example:
+#       python3 create_noise_ROIs.py -i <input_image> -shiftx 10 -shifty 10 -shiftunits px -size 15
+#
+# Authors: Ondrej Burkot, Jan Valosek
+#
 
 import os
 import sys
