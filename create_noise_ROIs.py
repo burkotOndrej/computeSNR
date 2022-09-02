@@ -106,10 +106,6 @@ def main():
         # pix_intensity = np.where(mask2d_final == 1, testImg1, False)
         # std = np.std(pix_intensity)
 
-        # save selected ROI to NIfTI
-        mask3d_final = nib.Nifti2Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr, dtype='uint8')
-        nib.save(mask3d_final, 'noise_mask_3d_hdr.nii')
-
         # Possible visualisation but for some reason takes a lot of time
         if visualise == 1:
             ax = plt.figure().add_subplot(projection='3d')
@@ -121,6 +117,12 @@ def main():
             # plt.imshow(testImg1[:, :, slice].T, cmap='gray')
             # plt.imshow(mask3d_final[:, :, slice].T, cmap=color, alpha=0.3)
             # plt.show()
+
+        # save selected ROI to NIfTI
+        output_filename = os.path.join(os.getcwd(), 'noise_mask.nii')
+        mask3d_final = nib.Nifti2Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr, dtype='uint8')
+        nib.save(mask3d_final, output_filename)
+        print('Created {}'.format(output_filename))
 
     # mask for single 2D slice
     else:
