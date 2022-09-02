@@ -20,6 +20,8 @@ from argparse import RawDescriptionHelpFormatter
 
 
 def get_parser():
+    # TODO - make -i flag mandatory argument, now it appers among optional args when you print help
+    # TODO - allow to specify path for output mask?
     parser = argparse.ArgumentParser(description='Create 4 cubic ROIs in the input image corners.'
                                                  '\nThe ROIs can be used for computation of background noise SD.',
                                      formatter_class=RawDescriptionHelpFormatter)
@@ -111,7 +113,7 @@ def main():
             ax = plt.figure().add_subplot(projection='3d')
             ax.voxels(mask3d_final, facecolors='red')
             plt.show()
-
+            # TODO - save png file
             # Visualisation in 2D plane
             # plt.figure()
             # plt.imshow(testImg1[:, :, slice].T, cmap='gray')
