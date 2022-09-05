@@ -20,7 +20,7 @@ from argparse import RawDescriptionHelpFormatter
 
 
 def get_parser():
-    # TODO - make -i flag mandatory argument, now it appers among optional args when you print help
+    # TODO - make -i flag mandatory argument, now it appears among optional args when you print help
     # TODO - allow to specify path for output mask?
     parser = argparse.ArgumentParser(description='Create 4 cubic ROIs in the input image corners.'
                                                  '\nThe ROIs can be used for computation of background noise SD.',
@@ -35,6 +35,8 @@ def get_parser():
     parser.add_argument('-size', help='Size of the ROIs in pixels. Example: 10', type=int, required=False, default=10)
     parser.add_argument('-visualise', help='Visualisation of created ROI for debug. 0 - do not visualise, 1 - visualise',
                         type=int, required=False, default=0)
+    parser.add_argument('-save', help='Path for saving created ROI. Example: /home/<usr>/<directory>'
+                        , type=str, required=False, default='')
     return parser
 
 
@@ -58,6 +60,7 @@ def main():
     shift_y = args.shifty
     shift_units = args.shiftunits
     visualise = args.visualise
+    path_to_save = args.save
 
     test_img1_hdr = testImg1.header
     test_img1_affine = testImg1.affine
@@ -89,6 +92,10 @@ def main():
         # initialize 3d grid
         xx, yy, zz = np.mgrid[:nx, :ny, :nz]
         mask3d_final = np.zeros((nx, ny, nz))
+
+        # initialize mask list
+        mask3d_list = []
+
         xc = center[0]
         yc = center[1]
         zc = center[2]
@@ -102,6 +109,11 @@ def main():
                       (abs(yy - yc) <= radius_y) &
                       (abs(zz - zc) <= radius_z)) * 1   # * 1 to convert F or T to 0 or 1
             mask3d = np.rot90(mask3d, k=it)
+
+            # Append current ROI to list
+            mask3d_list.append(mask3d)
+
+            # TODO - compare voxel intensity values across all ROIs to identify aliasing artifact
             mask3d_final = mask3d_final + mask3d
             testImg1 = np.rot90(testImg1, k=it)
 
@@ -112,17 +124,31 @@ def main():
         if visualise == 1:
             ax = plt.figure().add_subplot(projection='3d')
             ax.voxels(mask3d_final, facecolors='red')
-            plt.show()
-            # TODO - save png file
+
+            # Save figure as png file
+            # Path to save isn't specified:
+            if len(path_to_save) == 0:
+                path = os.path.dirname(os.path.normpath(path_input_file))
+                plt.savefig(os.path.join(path, 'created_3d_roi.png'))
+
+            # Path to save is specified by user:
+            else:
+                plt.savefig(os.path.join(path_to_save, 'created_3d_roi.png'))
+
             # Visualisation in 2D plane
             # plt.figure()
             # plt.imshow(testImg1[:, :, slice].T, cmap='gray')
             # plt.imshow(mask3d_final[:, :, slice].T, cmap=color, alpha=0.3)
-            # plt.show()
+            # plt.savefig(os.path.join(os.getcwd(), 'created_2d_roi.png'))
 
         # save selected ROI to NIfTI
-        output_filename = os.path.join(os.getcwd(), 'noise_mask.nii')
-        mask3d_final = nib.Nifti2Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr, dtype='uint8')
+        if len(path_to_save) == 0:
+            path = os.path.dirname(os.path.normpath(path_input_file))
+            output_filename = os.path.join(path, 'noise_mask.nii')
+        else:
+            output_filename = os.path.join(path_to_save, 'noise_mask.nii')
+
+        mask3d_final = nib.Nifti1Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr, dtype='uint8')
         nib.save(mask3d_final, output_filename)
         print('Created {}'.format(output_filename))
 
@@ -151,7 +177,12 @@ def main():
             plt.figure()
             plt.imshow(np.rot90(testImg1, k=1), cmap='gray')
             plt.imshow(mask2d_final, cmap=color, alpha=0.3)
-            plt.show()
+
+            if len(path_to_save) == 0:
+                path = os.path.dirname(os.path.normpath(path_input_file))
+                plt.savefig(os.path.join(path, 'created_2d_roi.png'))
+            else:
+                plt.savefig(os.path.join(path_to_save, 'created_2d_roi.png'))
 
         # getting pixel intensities from mask
         pix_intensity = np.where(mask2d_final == 1, testImg1, False)
@@ -159,7 +190,7 @@ def main():
 
         # save mask to NIfTI
         # I think it makes no sense to save 2D mask to a nifti file, but may be useful...
-        # mask2d_final = nib.Nifti2Image(mask2d_final, affine=test_img1_affine)
+        # mask2d_final = nib.Nifti1Image(mask2d_final, affine=test_img1_affine)
         # nib.save(mask2d_final, 'noise_mask_2d.nii')
 
         # appending values of mask2d to mask2d_final if
