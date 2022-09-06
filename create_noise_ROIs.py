@@ -15,6 +15,7 @@ import argparse
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
 
 from argparse import RawDescriptionHelpFormatter
 
@@ -106,7 +107,8 @@ def main():
         for it in range(4):
             mask3d = ((abs(xx - xc) <= radius_x) &
                       (abs(yy - yc) <= radius_y) &
-                      (abs(zz - zc) <= radius_z)) * 1   # * 1 to convert F or T to 0 or 1
+                      (abs(zz - zc) <= radius_z))
+            mask3d = mask3d.astype('int')
             mask3d = np.rot90(mask3d, k=it)
 
             # Append current ROI to list
@@ -118,6 +120,10 @@ def main():
 
         # pix_intensity = np.where(mask2d_final == 1, testImg1, False)
         # std = np.std(pix_intensity)
+
+        # Compare histograms of noise
+        data0 = mask3d_list[0]
+        histogram, bin_edges = np.histogram(data0, bins=256)
 
         # Possible visualisation but for some reason takes a lot of time
         if visualise == 1:
@@ -147,8 +153,8 @@ def main():
         else:
             output_filename = os.path.join(path_to_save, 'noise_mask.nii')
 
-        # TODO - make sure that output mask contains only values 0 and 1
-        mask3d_final = nib.Nifti1Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr, dtype='uint8')
+        mask3d_final = mask3d_final.astype('uint8')
+        mask3d_final = nib.Nifti1Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr)
         nib.save(mask3d_final, output_filename)
         print('Created {}'.format(output_filename))
 
