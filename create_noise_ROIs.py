@@ -118,12 +118,16 @@ def main():
             mask3d_final = mask3d_final + mask3d
             testImg1 = np.rot90(testImg1, k=it)
 
-        # pix_intensity = np.where(mask2d_final == 1, testImg1, False)
-        # std = np.std(pix_intensity)
+            pix_intensity = np.where(mask3d_list[it] == 1, testImg1, False)
+            pix_intensity = pix_intensity[pix_intensity > 0]
+            # std = np.std(pix_intensity)
 
-        # Compare histograms of noise
-        data0 = mask3d_list[0]
-        histogram, bin_edges = np.histogram(data0, bins=256)
+            # Compare histograms of noise
+            plt.hist(pix_intensity, bins=255)
+            plt.ylim([0,1000])
+
+        plt.legend(['data0', 'data1', 'data2', 'data3', 'data4'])
+        plt.show()
 
         # Possible visualisation but for some reason takes a lot of time
         if visualise == 1:
