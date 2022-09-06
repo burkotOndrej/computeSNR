@@ -21,7 +21,6 @@ from argparse import RawDescriptionHelpFormatter
 
 def get_parser():
     # TODO - make -i flag mandatory argument, now it appears among optional args when you print help
-    # TODO - allow to specify path for output mask?
     parser = argparse.ArgumentParser(description='Create 4 cubic ROIs in the input image corners.'
                                                  '\nThe ROIs can be used for computation of background noise SD.',
                                      formatter_class=RawDescriptionHelpFormatter)
@@ -34,8 +33,8 @@ def get_parser():
                         required=False, default='pix', choices=['pix', 'per'])
     parser.add_argument('-size', help='Size of the ROIs in pixels. Example: 10', type=int, required=False, default=10)
     parser.add_argument('-visualise', help='Visualisation of created ROI for debug. 0 - do not visualise, 1 - visualise',
-                        type=int, required=False, default=0)
-    parser.add_argument('-save', help='Path for saving created ROI. Example: /home/<usr>/<directory>'
+                        type=int, required=False, default=0, choices=[0, 1])
+    parser.add_argument('-outpath', help='Path for saving nii file with created ROIs. Example: /home/<usr>/<directory>'
                         , type=str, required=False, default='')
     return parser
 
@@ -60,7 +59,7 @@ def main():
     shift_y = args.shifty
     shift_units = args.shiftunits
     visualise = args.visualise
-    path_to_save = args.save
+    path_to_save = args.outpath
 
     test_img1_hdr = testImg1.header
     test_img1_affine = testImg1.affine
@@ -148,6 +147,7 @@ def main():
         else:
             output_filename = os.path.join(path_to_save, 'noise_mask.nii')
 
+        # TODO - make sure that output mask contains only values 0 and 1
         mask3d_final = nib.Nifti1Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr, dtype='uint8')
         nib.save(mask3d_final, output_filename)
         print('Created {}'.format(output_filename))
