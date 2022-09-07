@@ -1,6 +1,20 @@
 ## computeSNR
 
+```
+                                 _       _____ _   _ ______ 
+                                | |     /  ___| \ | || ___ \
+  ___ ___  _ __ ___  _ __  _   _| |_ ___\ `--.|  \| || |_/ /
+ / __/ _ \| '_ ` _ \| '_ \| | | | __/ _ \`--. \ . ` ||    / 
+| (_| (_) | | | | | | |_) | |_| | ||  __/\__/ / |\  || |\ \ 
+ \___\___/|_| |_| |_| .__/ \__,_|\__\___\____/\_| \_/\_| \_|
+                    | |                                     
+                    |_|    
+```
 TODO - add some description
+
+Python script used for making 3D ROIs.
+
+These ROIs can be used for computing SNR from MRI image.
 
 ### Usage
 
