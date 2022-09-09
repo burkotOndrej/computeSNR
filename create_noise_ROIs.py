@@ -128,16 +128,25 @@ def main():
             # TODO - compare voxel intensity values across all ROIs to identify aliasing artifact
             mask3d_final = mask3d_final + mask3d
 
-            # Save pixel intensities in mask to list
-            pix_intensity_list.append(np.where(mask3d == 1, testImg1, np.NaN))
-            stat_param[it] = np.nanmax(pix_intensity_list[it]), \
-                             np.nanmin(pix_intensity_list[it]), \
-                             np.nanstd(pix_intensity_list[it])
-
             # TODO - replace 0 to some NaN while preserving shape of each ROI
             # pixel intensities should be compared in each slice to filter
             # aliasing artifact (if slice contains aliasing artifact, it should be
             # removed from ROI so SNR wouldn't be spoiled)
+
+        pix_intensity_list = list()
+        # Loop across ROIs
+        for it in range(4):
+            pix_intensity_list.append(np.where(mask3d_list[it] == 1, testImg1, np.NaN))
+            # Loop across slices
+            for slice in range(testImg1.shape[2]):
+                stat_param[it, slice] = np.nanmax(pix_intensity_list[it][:, :, slice]), \
+                                        np.nanmin(pix_intensity_list[it][:, :, slice]), \
+                                        np.nanstd(pix_intensity_list[it][:, :, slice]), \
+                                        np.nanmedian(pix_intensity_list[it][:, :, slice])
+                                        # [it, slice] - [ROI, slice]
+                                        # maxVal, minVal, std, median
+                                        # slicewise inspection of each slice is now possible
+                                        # so we can extract slice containing aliasing artifact
 
         # pix_intensity_vec = pix_intensity[pix_intensity > 0]             # conversion to vector
         # std = np.std(pix_intensity)
