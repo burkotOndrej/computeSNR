@@ -148,6 +148,31 @@ def main():
                                         # slicewise inspection of each slice is now possible
                                         # so we can extract slice containing aliasing artifact
 
+        # Identify outlier values
+        for it in range(4):
+            for slice in range(testImg1.shape[2]):
+                print(slice)
+                if it == 0:
+                    if (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it + 2, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it + 3, slice][0]):
+                       pix_intensity_list[it][:,:,slice] = np.NaN
+                if it == 1:
+                    if (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it + 2, slice][0]):
+                       pix_intensity_list[it][:,:,slice] = np.NaN
+                if it == 2:
+                    if (stat_param[it, slice][0] > 1.5 * stat_param[it - 2, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]):
+                       pix_intensity_list[it][:,:,slice] = np.NaN
+                if it == 3:
+                    if (stat_param[it, slice][0] > 1.5 * stat_param[it - 3, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it - 2, slice][0]) or \
+                       (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]):
+                        pix_intensity_list[it][:, :, slice] = np.NaN
+
         # pix_intensity_vec = pix_intensity[pix_intensity > 0]             # conversion to vector
         # std = np.std(pix_intensity)
 
