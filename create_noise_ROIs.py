@@ -39,14 +39,6 @@ def get_parser():
                         , type=str, required=False, default='')
     return parser
 
-# def check(zero):
-#     number = 0
-#     if zero in number:
-#         return True
-#     else:
-#         return False
-
-
 def main():
     # Parse the command line arguments
     parser = get_parser()
@@ -124,14 +116,7 @@ def main():
 
             # Append current ROI to list
             mask3d_list.append(mask3d)
-
-            # TODO - compare voxel intensity values across all ROIs to identify aliasing artifact
             mask3d_final = mask3d_final + mask3d
-
-            # TODO - replace 0 to some NaN while preserving shape of each ROI
-            # pixel intensities should be compared in each slice to filter
-            # aliasing artifact (if slice contains aliasing artifact, it should be
-            # removed from ROI so SNR wouldn't be spoiled)
 
         pix_intensity_list = list()
         # Loop across ROIs
@@ -151,44 +136,55 @@ def main():
         # Identify outlier values
         for it in range(4):
             for slice in range(testImg1.shape[2]):
-                print(slice)
                 if it == 0:
                     if (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it + 2, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it + 3, slice][0]):
                        pix_intensity_list[it][:,:,slice] = np.NaN
+                       mask3d_list[it][:,:,slice] = 0
                 if it == 1:
                     if (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it + 2, slice][0]):
                        pix_intensity_list[it][:,:,slice] = np.NaN
+                       mask3d_list[it][:, :, slice] = 0
                 if it == 2:
                     if (stat_param[it, slice][0] > 1.5 * stat_param[it - 2, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]):
                        pix_intensity_list[it][:,:,slice] = np.NaN
+                       mask3d_list[it][:, :, slice] = 0
                 if it == 3:
                     if (stat_param[it, slice][0] > 1.5 * stat_param[it - 3, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it - 2, slice][0]) or \
                        (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]):
                         pix_intensity_list[it][:, :, slice] = np.NaN
+                        mask3d_list[it][:, :, slice] = 0
 
-        # pix_intensity_vec = pix_intensity[pix_intensity > 0]             # conversion to vector
-        # std = np.std(pix_intensity)
+        # TODO - Correctly reorient created mask so it'll correspond with image
+        # created mask is somehow rotated compared to input image
+        # firstly created ROI is in bottom right corner, it should be in upper left!
 
-            # for slice in range(pix_intensity.shape[2]):
-            #     median_dict[it,slice] = np.median(pix_intensity_nonzero[:, :, slice])
+        #      NOW                     EXPECTED
+        #  _____ _____               _____ _____
+        # |     |     |             |     |     |
+        # |  3  |  4  |             |  1  |  2  |
+        # |_____|_____|             |_____|_____|
+        #  _____ _____       -->     _____ _____
+        # |     |     |             |     |     |
+        # |  2  |  1  |             |  3  |  4  |
+        # |_____|_____|             |_____|_____|
 
-            # Compare histograms of noise
-            # plt.hist(pix_intensity_vec, bins=256)
-            # plt.ylim([0,1000])
+        # pls suggestions for correction
+        # mask3d_final = mask3d_final + np.where(mask3d_list[it] == 1, testImg1, False)
+
+        # Compare histograms of noise
+        # plt.hist(pix_intensity_vec, bins=256)
+        # plt.ylim([0,1000])
 
         # Show histograms of all ROIs
-        # plt.legend(['data0', 'data1', 'data2', 'data3', 'data4'])
+        # plt.legend(['data0', 'data1', 'data2', 'data3'])
         # plt.show()
-
-        # pix_intensity_shape = pix_intensity.shape
-        # pix_intensity_filtered = pix_intensity[:, :, np.all(pix_intensity > 0, keepdims=True)]
 
         # Possible visualisation but for some reason takes a lot of time
         if visualise == 1:
