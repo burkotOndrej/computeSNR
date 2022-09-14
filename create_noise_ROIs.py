@@ -66,18 +66,18 @@ def main():
 
     test_img1_hdr = testImg1.header
     test_img1_affine = testImg1.affine
-    slice = 3
 
-    color = 'Blues'                              # setting color for visualisation
-
+    # Get input image size
     im_size = test_img1_hdr.get_data_shape()  # data shape, number of pixels in x, y, z
+    # 2D - if the input image is just single slice (i.e., 2D), set the third dimension to 1
     if len(im_size) == 2:
         nz = 1
+    # 3D
     else:
         nz = im_size[2]
     nx, ny = im_size[0], im_size[1]  # data shape, number of pixels in x, y, z
 
-    # convert NiftiImage class to ndarray
+    # fetch image data (numpy ndarray)
     testImg1 = testImg1.get_fdata()
 
     if shift_units == 'pix':
