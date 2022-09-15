@@ -13,10 +13,8 @@ import os
 import sys
 import argparse
 import nibabel as nib
-import numpy
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import PercentFormatter
 import operator
 from functools import reduce
 
