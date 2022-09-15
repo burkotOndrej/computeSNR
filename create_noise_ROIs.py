@@ -22,6 +22,12 @@ from functools import reduce
 
 from argparse import RawDescriptionHelpFormatter
 
+# prejmenovat ulozeny obrazek na jmeno vstupniho souboru.png
+
+filtration_dict = {
+    'max': 0,
+    'iqr': 1
+}
 
 def get_parser():
     parser = argparse.ArgumentParser(description='Create 4 cubic ROIs in the input image corners.'
@@ -38,13 +44,14 @@ def get_parser():
     optional.add_argument('-shiftunits', help='Shift units in pixels (pix) or percentage (per)', type=str,
                         required=False, default='pix', choices=['pix', 'per'])
     optional.add_argument('-size', help='Size of the ROIs in pixels. Example: 10', type=int, required=False, default=10)
+    optional.add_argument('-filter', help='Filter method', default='max', choices=['max', 'iqr', 'None'])
     optional.add_argument('-visualise', help='Visualisation of created ROI for debug. 0 - do not visualise, 1 - visualise',
                         type=int, required=False, default=0, choices=[0, 1])
     optional.add_argument('-outpath', help='Path for saving nii file with created ROIs. Example: /home/<usr>/<directory>'
                         , type=str, required=False, default='')
     optional.add_argument('-h', '--help', action='help',
                           help='Show this message and exit.')
-    return parser.parse_args()
+    return parser
 
 def main():
     # Parse the command line arguments
@@ -55,6 +62,7 @@ def main():
     path_input_file = os.path.abspath(args.i)
 
     # Check if input file exists
+    # TODO - consider to replace if-else condition by try-except
     if os.path.exists(path_input_file):
         testImg1 = nib.load(path_input_file)
     else:
@@ -66,7 +74,9 @@ def main():
     shift_y = args.shifty
     shift_units = args.shiftunits
     visualise = args.visualise
-    path_to_save = args.outpath
+    path_to_save = args.outpath     # TODO - check if this path exists
+    if args.filter != 'None':
+        filter_method = filtration_dict[args.filter]
 
     test_img1_hdr = testImg1.header
     test_img1_affine = testImg1.affine
@@ -132,39 +142,39 @@ def main():
         # Loop across slices
         for slice in range(nz):
             stat_param[it, slice] = np.nanmax(pix_intensity_list[it][:, :, slice]), \
-                                    np.nanmin(pix_intensity_list[it][:, :, slice]), \
-                                    np.nanstd(pix_intensity_list[it][:, :, slice]), \
-                                    np.nanmedian(pix_intensity_list[it][:, :, slice])
+                                    (np.nanquantile(pix_intensity_list[it][:, :, slice], 0.75) -
+                                     np.nanquantile(pix_intensity_list[it][:, :, slice], 0.25))
                                     # [it, slice] - [ROI, slice]
-                                    # maxVal, minVal, std, median
+                                    # maxVal, minVal, std, median, IQR
 
-    # Identify outlier values
-    for it in range(4):
-        for slice in range(nz):
-            if it == 0:
-                if (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it + 2, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it + 3, slice][0]):
-                   pix_intensity_list[it][:,:,slice] = np.NaN
-                   mask3d_list[it][:,:,slice] = 0
-            if it == 1:
-                if (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it + 2, slice][0]):
-                   pix_intensity_list[it][:,:,slice] = np.NaN
-                   mask3d_list[it][:, :, slice] = 0
-            if it == 2:
-                if (stat_param[it, slice][0] > 1.5 * stat_param[it - 2, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it + 1, slice][0]):
-                   pix_intensity_list[it][:,:,slice] = np.NaN
-                   mask3d_list[it][:, :, slice] = 0
-            if it == 3:
-                if (stat_param[it, slice][0] > 1.5 * stat_param[it - 3, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it - 2, slice][0]) or \
-                   (stat_param[it, slice][0] > 1.5 * stat_param[it - 1, slice][0]):
-                    pix_intensity_list[it][:, :, slice] = np.NaN
-                    mask3d_list[it][:, :, slice] = 0
+    if args.filter != 'None':
+        # Identify outlier values
+        for it in range(4):
+            for slice in range(nz):
+                if it == 0:
+                    if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 1, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 2, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 3, slice][filter_method]):
+                       pix_intensity_list[it][:,:,slice] = np.NaN
+                       mask3d_list[it][:,:,slice] = 0
+                if it == 1:
+                    if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 1, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 1, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 2, slice][filter_method]):
+                       pix_intensity_list[it][:,:,slice] = np.NaN
+                       mask3d_list[it][:, :, slice] = 0
+                if it == 2:
+                    if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 2, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 1, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 1, slice][filter_method]):
+                       pix_intensity_list[it][:,:,slice] = np.NaN
+                       mask3d_list[it][:, :, slice] = 0
+                if it == 3:
+                    if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 3, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 2, slice][filter_method]) or \
+                       (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 1, slice][filter_method]):
+                        pix_intensity_list[it][:, :, slice] = np.NaN
+                        mask3d_list[it][:, :, slice] = 0
 
     mask3d_final = reduce(operator.add, mask3d_list)          # Same as mask3d_list[0] + mask3d_list[1] + mask3d_list[2] + mask3d_list[3]
 
@@ -177,18 +187,20 @@ def main():
         # Save figure as png file
         # Path to save isn't specified:
         if len(path_to_save) == 0:
+            # TODO - move the following line at the begining of the script - to check if the output path exists
             path = os.path.dirname(os.path.normpath(path_input_file))
             plt.savefig(os.path.join(path, 'created_3d_roi.png'))
 
         # Path to save is specified by user:
         else:
-            plt.savefig(os.path.join(path_to_save, 'created_3d_roi.png'))
+            plt.savefig(os.path.join(path_to_save, (path_input_file.strip('.nii.gz') + '_noise_mask.png')))
 
     # save selected ROI to NIfTI
+    # We have to check, whether output path is
     if len(path_to_save) == 0:
         output_filename = os.path.normpath(path_input_file.strip('.nii.gz') + '_noise_mask.nii.gz')
     else:
-        output_filename = os.path.normpath(path_input_file.strip('.nii.gz') + '_noise_mask.nii.gz')
+        output_filename = os.path.join(path_to_save, (path_input_file.strip('.nii.gz') + '_noise_mask.nii.gz'))
 
     mask3d_final = mask3d_final.astype('uint8')
     mask3d_final = nib.Nifti1Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr)
