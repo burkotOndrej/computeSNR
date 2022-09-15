@@ -24,23 +24,27 @@ from argparse import RawDescriptionHelpFormatter
 
 
 def get_parser():
-    # TODO - make -i flag mandatory argument, now it appears among optional args when you print help
     parser = argparse.ArgumentParser(description='Create 4 cubic ROIs in the input image corners.'
                                                  '\nThe ROIs can be used for computation of background noise SD.',
-                                     formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument('-i', help='Input image', type=str, required=True)
-    parser.add_argument('-shiftx', help='Shift of the ROIs in x axis from the image borders.', type=int,
+                                     formatter_class=RawDescriptionHelpFormatter,
+                                     add_help=False)
+    required = parser.add_argument_group('Required arguments')
+    optional = parser.add_argument_group('Optional arguments')
+    required.add_argument('-i', help='Input image', type=str, required=True)
+    optional.add_argument('-shiftx', help='Shift of the ROIs in x axis from the image borders.', type=int,
                         required=False, default=10)
-    parser.add_argument('-shifty', help='Shift of the ROIs in y axis from the image borders.', type=int,
+    optional.add_argument('-shifty', help='Shift of the ROIs in y axis from the image borders.', type=int,
                         required=False, default=10)
-    parser.add_argument('-shiftunits', help='Shift units in pixels (pix) or percentage (per)', type=str,
+    optional.add_argument('-shiftunits', help='Shift units in pixels (pix) or percentage (per)', type=str,
                         required=False, default='pix', choices=['pix', 'per'])
-    parser.add_argument('-size', help='Size of the ROIs in pixels. Example: 10', type=int, required=False, default=10)
-    parser.add_argument('-visualise', help='Visualisation of created ROI for debug. 0 - do not visualise, 1 - visualise',
+    optional.add_argument('-size', help='Size of the ROIs in pixels. Example: 10', type=int, required=False, default=10)
+    optional.add_argument('-visualise', help='Visualisation of created ROI for debug. 0 - do not visualise, 1 - visualise',
                         type=int, required=False, default=0, choices=[0, 1])
-    parser.add_argument('-outpath', help='Path for saving nii file with created ROIs. Example: /home/<usr>/<directory>'
+    optional.add_argument('-outpath', help='Path for saving nii file with created ROIs. Example: /home/<usr>/<directory>'
                         , type=str, required=False, default='')
-    return parser
+    optional.add_argument('-h', '--help', action='help',
+                          help='Show this message and exit.')
+    return parser.parse_args()
 
 def main():
     # Parse the command line arguments
