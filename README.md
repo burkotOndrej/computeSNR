@@ -12,7 +12,8 @@ Python script used for making 2D or 3D ROIs.
 
 These ROIs can be used for computing SNR from MRI image.
 
-TODO - Later I'll add the rest of description.
+Input .nii.gz file must have same number of rows and columns, otherwise
+script will not work!
 
 Optional arguments:
 
@@ -20,8 +21,9 @@ Optional arguments:
     -shifty : Shift of the ROIs in Y axis from the image borders.
     -shiftunits : Shift units in pixels (pix) or percentage (per).
     -size : Size of ROIs in X and Y axis in pixels.
+    -filter : Filter method, 'max', 'iqr', 'None'.
     -visualise : Visualisation of created ROI. 0 - do not visualise, 1 - visualise'
-    -outpath : Path for saving nii file with created ROIs.
+    -outpath : Path for saving NIfTI file with created ROIs.
 
 ### Usage
 
@@ -47,14 +49,14 @@ $ source venv/bin/activate
 $ pip install -r requirements.txt
 ```
 
-3. Run the script:
+4. Run the script:
 
 ```shell
 $ python3 create_noise_ROIs.py -i /home/<user>/sub-001_T1w.nii.gz
 ```
 
-4. You can show help for script
+You can show help for script by typing:
 
 ```shell
-$ create_noise_ROIs.py
+$ python3 create_noise_ROIs.py -h
 ```

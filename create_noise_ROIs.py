@@ -46,7 +46,7 @@ def get_parser():
     optional.add_argument('-visualise', help='Visualisation of created ROI for debug. 0 - do not visualise, 1 - visualise',
                         type=int, required=False, default=0, choices=[0, 1])
     optional.add_argument('-outpath', help='Path for saving nii file with created ROIs. Example: /home/<usr>/<directory>'
-                        , type=str, required=False, default='')
+                        , type=str, required=False, default='/')
     optional.add_argument('-h', '--help', action='help',
                           help='Show this message and exit.')
     return parser
@@ -60,11 +60,10 @@ def main():
     path_input_file = os.path.abspath(args.i)
 
     # Check if input file exists
-    # TODO - consider to replace if-else condition by try-except
-    if os.path.exists(path_input_file):
-        testImg1 = nib.load(path_input_file)
-    else:
-        print('ERROR: Input file {} does not exist.'.format(path_input_file))
+    try:
+        file_data = nib.load(path_input_file)
+    except:
+        print('ERROR: Input image not found, exitting script!')
         sys.exit()
 
     size = args.size  # size of the square
@@ -72,15 +71,25 @@ def main():
     shift_y = args.shifty
     shift_units = args.shiftunits
     visualise = args.visualise
-    path_to_save = args.outpath     # TODO - check if this path exists
+    path_output = args.outpath
+
+    if os.path.exists(path_output) is False:
+        print('ERROR: Output path does not exist!')
+        sys.exit()
+
     if args.filter != 'None':
         filter_method = filtration_dict[args.filter]
 
-    test_img1_hdr = testImg1.header
-    test_img1_affine = testImg1.affine
+    test_img1_hdr = file_data.header
+    test_img1_affine = file_data.affine
 
     # Get input image size
     im_size = test_img1_hdr.get_data_shape()  # data shape, number of pixels in x, y, z
+
+    if im_size[0] != im_size[1]:
+        print('ERROR: Input data does not have same number of rows and columns!')
+        sys.exit()
+
     # 2D - if the input image is just single slice (i.e., 2D), set the third dimension to 1
     if len(im_size) == 2:
         nz = 1
@@ -90,7 +99,7 @@ def main():
     nx, ny = im_size[0], im_size[1]  # data shape, number of pixels in x, y, z
 
     # fetch image data (numpy ndarray)
-    testImg1 = testImg1.get_fdata()
+    file_data = file_data.get_fdata()
 
     if shift_units == 'pix':
         # center of ROI [x, y, z]
@@ -121,22 +130,22 @@ def main():
     radius_y = radius_x  # square --> radius left-right and top-bottom are same
     radius_z = nz
 
+    # TODO - replace rotation with something else, so it'll be possible
+    # TODO - to create ROIs on images of different number of rows and columns
     for it in range(4):
         mask3d = ((abs(xx - xc) <= radius_x) &
                   (abs(yy - yc) <= radius_y) &
                   (abs(zz - zc) <= radius_z))
         mask3d = mask3d.astype('int')
         mask3d = np.rot90(mask3d, k=it)
-        # testImg1 = np.rot90(testImg1, k=it)
 
         # Append current ROI to list
         mask3d_list.append(mask3d)
-        mask3d_final = mask3d_final + mask3d
 
     pix_intensity_list = list()
     # Loop across ROIs
     for it in range(4):
-        pix_intensity_list.append(np.where(mask3d_list[it] == 1, testImg1, np.NaN))
+        pix_intensity_list.append(np.where(mask3d_list[it] == 1, file_data, np.NaN))
         # Loop across slices
         for slice in range(nz):
             stat_param[it, slice] = np.nanmax(pix_intensity_list[it][:, :, slice]), \
@@ -184,21 +193,23 @@ def main():
 
         # Save figure as png file
         # Path to save isn't specified:
-        if len(path_to_save) == 0:
-            # TODO - move the following line at the begining of the script - to check if the output path exists
+        if len(path_output) == 1:
             path = os.path.dirname(os.path.normpath(path_input_file))
-            plt.savefig(os.path.join(path, 'created_3d_roi.png'))
+            name = os.path.basename(path_input_file.strip('.nii.gz')) + '_noise_mask.png'
+            plt.savefig(os.path.join(path, name))
 
         # Path to save is specified by user:
         else:
-            plt.savefig(os.path.join(path_to_save, (path_input_file.strip('.nii.gz') + '_noise_mask.png')))
+            name = os.path.basename(path_input_file.strip('.nii.gz')) + '_noise_mask.png'
+            plt.savefig(os.path.join(path_output, name))
 
     # save selected ROI to NIfTI
     # We have to check, whether output path is
-    if len(path_to_save) == 0:
+    if len(path_output) == 1:
         output_filename = os.path.normpath(path_input_file.strip('.nii.gz') + '_noise_mask.nii.gz')
     else:
-        output_filename = os.path.join(path_to_save, (path_input_file.strip('.nii.gz') + '_noise_mask.nii.gz'))
+        name = os.path.basename(path_input_file.strip('.nii.gz')) + '_noise_mask.nii.gz'
+        output_filename = os.path.join(path_output, name)
 
     mask3d_final = mask3d_final.astype('uint8')
     mask3d_final = nib.Nifti1Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr)
