@@ -12,8 +12,7 @@ Python script used for making 2D or 3D ROIs.
 
 These ROIs can be used for computing SNR from MRI image.
 
-Input .nii.gz file must have same number of rows and columns, otherwise
-script will not work!
+NEW VERSION: It is now possible to create ROIs on non-square images!
 
 Optional arguments:
 
