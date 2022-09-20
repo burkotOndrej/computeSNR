@@ -86,9 +86,9 @@ def main():
     # Get input image size
     im_size = test_img1_hdr.get_data_shape()  # data shape, number of pixels in x, y, z
 
-    if im_size[0] != im_size[1]:
-        print('ERROR: Input data does not have same number of rows and columns!')
-        sys.exit()
+    # if im_size[0] != im_size[1]:
+    #     print('ERROR: Input data does not have same number of rows and columns!')
+    #     sys.exit()
 
     # 2D - if the input image is just single slice (i.e., 2D), set the third dimension to 1
     if len(im_size) == 2:
@@ -100,12 +100,32 @@ def main():
 
     # fetch image data (numpy ndarray)
     file_data = file_data.get_fdata()
+    center = list()
 
     if shift_units == 'pix':
         # center of ROI [x, y, z]
-        center = [np.ceil(nx - shift_x),
-                  np.ceil(ny - shift_y),
-                  nz]
+        for roi in range(4):
+            if roi == 0:
+                center.append([np.ceil(nx - shift_x),
+                          np.ceil(ny - shift_y),
+                          nz])
+
+            if roi == 1:
+                center.append([np.ceil(shift_x),
+                          np.ceil(ny - shift_y),
+                          nz])
+
+            if roi == 2:
+                center.append([np.ceil(nx - shift_x),
+                          np.ceil(shift_y),
+                          nz])
+
+            if roi == 3:
+                center.append([np.ceil(shift_x),
+                 np.ceil(shift_y),
+                 nz])
+
+    # TODO - copy variable 'center' so it'll work also in 'per' option
     elif shift_units == 'per':
         # center of ROI [x, y, z]
         center = [np.ceil(nx * shift_x / 100),
@@ -122,22 +142,22 @@ def main():
     median_dict = dict()
     stat_param = dict()
 
-    xc = center[0]
-    yc = center[1]
-    zc = center[2]
-
     radius_x = np.ceil((int(size) - 1) / 2)  # radius of square - 5 to left, 5 to right
     radius_y = radius_x  # square --> radius left-right and top-bottom are same
     radius_z = nz
 
-    # TODO - replace rotation with something else, so it'll be possible
-    # TODO - to create ROIs on images of different number of rows and columns
-    for it in range(4):
+    for roi in range(4):
+        xc = center[roi][0]
+        yc = center[roi][1]
+        zc = center[roi][2]
+
         mask3d = ((abs(xx - xc) <= radius_x) &
                   (abs(yy - yc) <= radius_y) &
                   (abs(zz - zc) <= radius_z))
         mask3d = mask3d.astype('int')
-        mask3d = np.rot90(mask3d, k=it)
+
+        # now all 4 ROIs in one slice are on same place
+        # mask3d = np.rot90(mask3d, k=it)
 
         # Append current ROI to list
         mask3d_list.append(mask3d)
