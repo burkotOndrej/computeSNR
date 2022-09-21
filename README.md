@@ -14,6 +14,9 @@ These ROIs can be used for computing SNR from MRI image.
 
 NEW VERSION: It is now possible to create ROIs on non-square images!
 
+![](https://github.com/burkotOndrej/computeSNR/blob/main/axial_roi.gif)
+![](https://github.com/burkotOndrej/computeSNR/blob/main/created_roi.gif)
+
 Optional arguments:
 
     -shiftx : Shift of the ROIs in X axis from the image borders.
