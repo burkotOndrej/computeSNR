@@ -18,7 +18,6 @@ Optional arguments:
 
     -shiftx : Shift of the ROIs in X axis from the image borders.
     -shifty : Shift of the ROIs in Y axis from the image borders.
-    -shiftunits : Shift units in pixels (pix) or percentage (per).
     -size : Size of ROIs in X and Y axis in pixels.
     -filter : Filter method, 'max', 'iqr', 'None'.
     -visualise : Visualisation of created ROI. 0 - do not visualise, 1 - visualise'
