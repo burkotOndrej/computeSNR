@@ -39,8 +39,6 @@ def get_parser():
                         required=False, default=10)
     optional.add_argument('-shifty', help='Shift of the ROIs in y axis from the image borders.', type=int,
                         required=False, default=10)
-    optional.add_argument('-shiftunits', help='Shift units in pixels (pix) or percentage (per)', type=str,
-                        required=False, default='pix', choices=['pix', 'per'])
     optional.add_argument('-size', help='Size of the ROIs in pixels. Example: 10', type=int, required=False, default=10)
     optional.add_argument('-filter', help='Filter method', default='max', choices=['max', 'iqr', 'None'])
     optional.add_argument('-visualise', help='Visualisation of created ROI for debug. 0 - do not visualise, 1 - visualise',
@@ -69,7 +67,6 @@ def main():
     size = args.size  # size of the square
     shift_x = args.shiftx
     shift_y = args.shifty
-    shift_units = args.shiftunits
     visualise = args.visualise
     path_output = args.outpath
 
@@ -80,15 +77,11 @@ def main():
     if args.filter != 'None':
         filter_method = filtration_dict[args.filter]
 
-    test_img1_hdr = file_data.header
-    test_img1_affine = file_data.affine
+    file_data_hdr = file_data.header
+    file_data_affine = file_data.affine
 
     # Get input image size
-    im_size = test_img1_hdr.get_data_shape()  # data shape, number of pixels in x, y, z
-
-    # if im_size[0] != im_size[1]:
-    #     print('ERROR: Input data does not have same number of rows and columns!')
-    #     sys.exit()
+    im_size = file_data_hdr.get_data_shape()  # data shape, number of pixels in x, y, z
 
     # 2D - if the input image is just single slice (i.e., 2D), set the third dimension to 1
     if len(im_size) == 2:
@@ -98,54 +91,47 @@ def main():
         nz = im_size[2]
     nx, ny = im_size[0], im_size[1]  # data shape, number of pixels in x, y, z
 
-    # fetch image data (numpy ndarray)
+    # Fetch image data (numpy ndarray)
     file_data = file_data.get_fdata()
-    center = list()
+    center = list()                  # initialize center variable with ROIs coordinates
 
-    if shift_units == 'pix':
-        # center of ROI [x, y, z]
-        for roi in range(4):
-            if roi == 0:
-                center.append([np.ceil(nx - shift_x),
-                          np.ceil(ny - shift_y),
-                          nz])
+    # Create ROIs coordinates
+    for roi in range(4):
+        if roi == 0:
+            center.append([np.ceil(nx - shift_x),
+                      np.ceil(ny - shift_y),
+                      nz])
 
-            if roi == 1:
-                center.append([np.ceil(shift_x),
-                          np.ceil(ny - shift_y),
-                          nz])
+        if roi == 1:
+            center.append([np.ceil(shift_x),
+                      np.ceil(ny - shift_y),
+                      nz])
 
-            if roi == 2:
-                center.append([np.ceil(nx - shift_x),
-                          np.ceil(shift_y),
-                          nz])
+        if roi == 2:
+            center.append([np.ceil(nx - shift_x),
+                      np.ceil(shift_y),
+                      nz])
 
-            if roi == 3:
-                center.append([np.ceil(shift_x),
-                 np.ceil(shift_y),
-                 nz])
+        if roi == 3:
+            center.append([np.ceil(shift_x),
+             np.ceil(shift_y),
+             nz])
 
-    # TODO - copy variable 'center' so it'll work also in 'per' option
-    elif shift_units == 'per':
-        # center of ROI [x, y, z]
-        center = [np.ceil(nx * shift_x / 100),
-                  np.ceil(ny * shift_y / 100),
-                  nz]
-
-    # initialize 3d grid
+    # Initialize 3d grid
     xx, yy, zz = np.mgrid[:nx, :ny, :nz]
     mask3d_final = np.zeros((nx, ny, nz))
 
-    # initialize mask list
+    # Initialize another variables
     mask3d_list = list()
     pix_intensity_list = list()
     median_dict = dict()
     stat_param = dict()
 
-    radius_x = np.ceil((int(size) - 1) / 2)  # radius of square - 5 to left, 5 to right
-    radius_y = radius_x  # square --> radius left-right and top-bottom are same
-    radius_z = nz
+    radius_x = np.ceil((int(size) - 1) / 2)  # radius of square - 5 pixels to left, 5 pixels to right
+    radius_y = radius_x                      # square --> radius left-right and top-bottom are same
+    radius_z = nz                            # radius in Z direction --> all slices
 
+    # Make ROIs in all slices
     for roi in range(4):
         xc = center[roi][0]
         yc = center[roi][1]
@@ -156,9 +142,6 @@ def main():
                   (abs(zz - zc) <= radius_z))
         mask3d = mask3d.astype('int')
 
-        # now all 4 ROIs in one slice are on same place
-        # mask3d = np.rot90(mask3d, k=it)
-
         # Append current ROI to list
         mask3d_list.append(mask3d)
 
@@ -166,7 +149,7 @@ def main():
     # Loop across ROIs
     for it in range(4):
         pix_intensity_list.append(np.where(mask3d_list[it] == 1, file_data, np.NaN))
-        # Loop across slices
+        # Loop across slices --> Statistical parameters of every ROI for filtration
         for slice in range(nz):
             stat_param[it, slice] = np.nanmax(pix_intensity_list[it][:, :, slice]), \
                                     (np.nanquantile(pix_intensity_list[it][:, :, slice], 0.75) -
@@ -177,25 +160,30 @@ def main():
     if args.filter != 'None':
         # Identify outlier values
         for it in range(4):
+            # Loop across all slices
             for slice in range(nz):
+                # Compare 1st ROI with others in current slice
                 if it == 0:
                     if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 1, slice][filter_method]) or \
                        (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 2, slice][filter_method]) or \
                        (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 3, slice][filter_method]):
                        pix_intensity_list[it][:,:,slice] = np.NaN
                        mask3d_list[it][:,:,slice] = 0
+                # Compare 2nd ROI with others in current slice
                 if it == 1:
                     if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 1, slice][filter_method]) or \
                        (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 1, slice][filter_method]) or \
                        (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 2, slice][filter_method]):
                        pix_intensity_list[it][:,:,slice] = np.NaN
                        mask3d_list[it][:, :, slice] = 0
+                # Compare 3rd ROI with others in current slice
                 if it == 2:
                     if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 2, slice][filter_method]) or \
                        (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 1, slice][filter_method]) or \
                        (stat_param[it, slice][filter_method] > 1.5 * stat_param[it + 1, slice][filter_method]):
                        pix_intensity_list[it][:,:,slice] = np.NaN
                        mask3d_list[it][:, :, slice] = 0
+                # Compare 4th ROI with others in current slice
                 if it == 3:
                     if (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 3, slice][filter_method]) or \
                        (stat_param[it, slice][filter_method] > 1.5 * stat_param[it - 2, slice][filter_method]) or \
@@ -207,7 +195,7 @@ def main():
 
     # Possible visualisation, takes a lot of time
     if visualise == 1:
-        print('Creating, please wait...')
+        print('MATPLOTLIB: Creating 3D plot, please wait...')
         ax = plt.figure().add_subplot(projection='3d')
         ax.voxels(mask3d_final, facecolors='red')
 
@@ -223,18 +211,22 @@ def main():
             name = os.path.basename(path_input_file.strip('.nii.gz')) + '_noise_mask.png'
             plt.savefig(os.path.join(path_output, name))
 
-    # save selected ROI to NIfTI
-    # We have to check, whether output path is
+    # Save selected ROI to NIfTI
+    # Output path was not specified by user
     if len(path_output) == 1:
         output_filename = os.path.normpath(path_input_file.strip('.nii.gz') + '_noise_mask.nii.gz')
+    # Output path was specified by user
     else:
         name = os.path.basename(path_input_file.strip('.nii.gz')) + '_noise_mask.nii.gz'
         output_filename = os.path.join(path_output, name)
 
+    # Data type conversion of final mask with all ROIs
     mask3d_final = mask3d_final.astype('uint8')
-    mask3d_final = nib.Nifti1Image(mask3d_final, affine=test_img1_affine, header=test_img1_hdr)
+
+    # Save mask as NIfTI1 image
+    mask3d_final = nib.Nifti1Image(mask3d_final, affine=file_data_affine, header=file_data_hdr)
     nib.save(mask3d_final, output_filename)
-    print('Created {}'.format(output_filename))
+    print('SCRIPT: Created {}'.format(output_filename))
 
 
 if __name__ == "__main__":
