@@ -8,11 +8,7 @@
                     | |                                     
                     |_|    
 ```
-Python script used for making 2D or 3D ROIs.
-
-These ROIs can be used for computing SNR from MRI image.
-
-TODO - Later I'll add the rest of description.
+Python script used for making 2D or 3D background noise ROIs and SNR calculation.
 
 Optional arguments:
 
@@ -50,11 +46,13 @@ $ pip install -r requirements.txt
 3. Run the script:
 
 ```shell
-$ python3 create_noise_ROIs.py -i /home/<user>/sub-001_T1w.nii.gz
+$ python3 computeSNR.py -i /home/<user>/sub-001_T1w.nii.gz -m /home/<user>/sub-001_T1w_roi_mask.nii.gz 
 ```
+Note: It is always good practice to manually input also optional arguments (at least `-shiftx` and `-shifty`)
+because then you will be sure, that noise mask is generated on right places.
 
 4. You can show help for script
 
 ```shell
-$ create_noise_ROIs.py
+$ computeSNR.py -h
 ```

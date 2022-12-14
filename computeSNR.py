@@ -27,6 +27,8 @@ filtration_dict = {
 
 
 def get_parser():
+    """ Define input parameters for script. """
+
     parser = argparse.ArgumentParser(description='Script for calculation of SNR from input image'
                                                  '\nCreate 4 cubic ROIs in the input image corners.'
                                                  '\nThe ROIs can be used for computation of background noise SD.',
@@ -57,6 +59,18 @@ def get_parser():
 
 # Define function for loading input data
 def load_image(image_in_path):
+    """ Load input image.
+
+    Parameters
+    ----------
+    image_in_path : string
+        Path to data you want to load.
+
+    Returns
+    -------
+    image_in : 2D/3D NIfTI image
+        Loaded input image in NIfTI format.
+    """
 
     # Check if input file exists
     # TODO - consider to replace if-else condition by try-except
@@ -71,6 +85,19 @@ def load_image(image_in_path):
 
 # Define function for creation of 4 cubic noise ROIs in background
 def create_noise_mask(image):
+    """Create 4 cubic ROIs in image corners.
+
+    Parameters
+    ----------
+    image : NIfTI image
+        NIfTI image where noise ROIs will be created.
+
+    Returns
+    -------
+    mask3d_final : ndarray
+        Array with created noise ROIs.
+    """
+
     parser = get_parser()
     args = parser.parse_args()
 
@@ -170,6 +197,21 @@ def create_noise_mask(image):
 
 # Define function for saving created noise ROIs
 def save_image(image_in, mask_to_save):
+    """ Save created noise ROIs.
+
+    Parameters
+    ----------
+    image_in : NIfTI image
+        Input image in NIfTI format.
+
+    mask_to_save : ndarray
+        Binary mask which has to be saved (noise ROIs in most cases).
+
+    Returns
+    -------
+    This function does not return anything, only saves image to output path.
+    """
+
     # Fetch necessary input arguments
     parser = get_parser()
     args = parser.parse_args()
@@ -194,6 +236,25 @@ def save_image(image_in, mask_to_save):
 
 # Define function for SNR calculation
 def calculate_snr(image_mask_in, noise_mask_in, input_image):
+    """ Calculate SNR of input image using ROI binary mask and noise binary mask.
+
+    Parameters
+    ----------
+    image_mask_in : ndarray
+        Binary mask of ROI (f. e. brain).
+
+    noise_mask_in : ndarray
+        Binary mask of background noise.
+
+    input_image : ndarray
+        Pixel intensity values of whole image for SNR estimation
+
+    Returns
+    -------
+    snr_final : float
+        Calculated SNR.
+    """
+
     dim = input_image.shape
     pix_intensity_roi = np.zeros(dim)
     pix_intensity_noise = np.zeros(dim)
